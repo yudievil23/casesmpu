@@ -1,0 +1,1683 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Gerenciamento de Celulares</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        /* Animação inicial */
+        #splashScreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            transition: opacity 1s ease;
+        }
+        
+        #logoAnimation {
+            font-family: 'Arial Black', sans-serif;
+            font-size: 5rem;
+            font-weight: bold;
+            background: linear-gradient(90deg, #ff0000, #ff7300, #fffb00, #48ff00, #00ffd5, #002bff, #7a00ff, #ff00c8, #ff0000);
+            background-size: 400%;
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            animation: animateLogo 20s linear infinite, floatLogo 3s ease-in-out infinite alternate;
+            text-shadow: 0 0 10px rgba(255,255,255,0.3);
+            transform-style: preserve-3d;
+            perspective: 1000px;
+        }
+        
+        @keyframes animateLogo {
+            0% {
+                background-position: 0%;
+            }
+            100% {
+                background-position: 400%;
+            }
+        }
+        
+        @keyframes floatLogo {
+            0% {
+                transform: translateY(0) rotateX(0deg) rotateY(0deg);
+            }
+            100% {
+                transform: translateY(-20px) rotateX(5deg) rotateY(5deg);
+            }
+        }
+        
+        @keyframes spinLogo {
+            0% {
+                transform: rotate(0deg);
+            }
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+        
+        /* Estilos do sistema */
+        body {
+            background-color: #1a1a1a;
+            color: #e5e7eb;
+        }
+        
+        .phone-card {
+            transition: all 0.3s ease;
+            background-color: #2d2d2d;
+            border: 1px solid #444;
+        }
+        .phone-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+            border-color: #666;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 100;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.7);
+            overflow-y: auto;
+        }
+        
+        .modal-content {
+            background-color: #2d2d2d;
+            margin: 5% auto;
+            padding: 20px;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 800px;
+            color: #e5e7eb;
+            border: 1px solid #444;
+        }
+        
+        .close-btn {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        
+        .close-btn:hover {
+            color: white;
+        }
+        
+        .edit-btn, .delete-btn, .installment-btn {
+            transition: all 0.2s ease;
+            background-color: #3d3d3d;
+            color: #e5e7eb;
+        }
+        
+        .edit-btn:hover {
+            background-color: #3b82f6;
+            color: white;
+        }
+        
+        .delete-btn:hover {
+            background-color: #ef4444;
+            color: white;
+        }
+        
+        .installment-btn:hover {
+            background-color: #10b981;
+            color: white;
+        }
+        
+        .carousel {
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .carousel-inner {
+            display: flex;
+            transition: transform 0.5s ease;
+        }
+        
+        .carousel-item {
+            min-width: 100%;
+            box-sizing: border-box;
+        }
+        
+        .carousel-control {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background-color: rgba(0,0,0,0.5);
+            color: white;
+            border: none;
+            padding: 10px;
+            cursor: pointer;
+            z-index: 10;
+        }
+        
+        .carousel-control.prev {
+            left: 10px;
+        }
+        
+        .carousel-control.next {
+            right: 10px;
+        }
+        
+        .checklist-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        
+        .checklist-item input[type="checkbox"] {
+            margin-right: 8px;
+        }
+        
+        .checklist-item input[type="number"] {
+            width: 60px;
+            margin-left: 8px;
+            background-color: #3d3d3d;
+            color: #e5e7eb;
+            border: 1px solid #555;
+        }
+        
+        .photo-thumbnail {
+            width: 80px;
+            height: 80px;
+            object-fit: cover;
+            margin-right: 8px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            border: 2px solid #555;
+            border-radius: 4px;
+        }
+        
+        .photo-thumbnail:hover {
+            border-color: #3b82f6;
+        }
+        
+        .status-badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .status-available {
+            background-color: rgba(16, 185, 129, 0.2);
+            color: #10b981;
+        }
+        
+        .status-sold {
+            background-color: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+        }
+        
+        .stats-card {
+            transition: all 0.3s ease;
+            border-left: 4px solid;
+            background-color: #2d2d2d;
+        }
+        
+        .stats-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+        
+        .stats-card.total-stock {
+            border-left-color: #3b82f6;
+        }
+        
+        .stats-card.total-sales {
+            border-left-color: #10b981;
+        }
+        
+        .stats-card.stock-value {
+            border-left-color: #f59e0b;
+        }
+        
+        .stats-card.total-invested {
+            border-left-color: #ef4444;
+        }
+        
+        .installment-option {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px;
+            margin-bottom: 8px;
+            background-color: #3d3d3d;
+            border-radius: 4px;
+            cursor: pointer;
+            border: 1px solid #444;
+        }
+        
+        .installment-option:hover {
+            background-color: #4d4d4d;
+        }
+        
+        #logoPreview {
+            max-width: 150px;
+            max-height: 80px;
+            margin-top: 10px;
+        }
+        
+        .custom-checklist-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .remove-checklist-item {
+            margin-left: 8px;
+            color: #ef4444;
+            cursor: pointer;
+        }
+        
+        .carousel-item img {
+            width: 100%;
+            height: 200px;
+            object-fit: contain;
+        }
+        
+        .rate-edit-input {
+            width: 50px;
+            text-align: center;
+            border: 1px solid #555;
+            border-radius: 4px;
+            padding: 2px;
+            background-color: #3d3d3d;
+            color: #e5e7eb;
+        }
+        
+        .rate-edit-btn {
+            margin-left: 8px;
+            color: #3b82f6;
+            cursor: pointer;
+        }
+        
+        .rate-edit-btn:hover {
+            text-decoration: underline;
+        }
+        
+        .pdf-photo-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 5px;
+            margin-top: 10px;
+        }
+        
+        .pdf-photo-thumbnail {
+            width: 100%;
+            height: 50px;
+            object-fit: cover;
+            border: 1px solid #555;
+        }
+        
+        .checklist-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        
+        .checklist-table th, .checklist-table td {
+            border: 1px solid #555;
+            padding: 8px;
+            text-align: left;
+        }
+        
+        .checklist-table th {
+            background-color: #3d3d3d;
+        }
+        
+        .checklist-table tr:nth-child(even) {
+            background-color: #3d3d3d;
+        }
+        
+        .selected-installment {
+            background-color: rgba(59, 130, 246, 0.2);
+            border: 1px solid #3b82f6;
+        }
+        
+        .signature-line {
+            border-top: 1px solid #e5e7eb;
+            width: 300px;
+            margin-top: 60px;
+        }
+        
+        /* Form elements */
+        input, select, textarea {
+            background-color: #3d3d3d;
+            color: #e5e7eb;
+            border: 1px solid #555;
+        }
+        
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 1px #3b82f6;
+        }
+        
+        /* Buttons */
+        button {
+            transition: all 0.2s ease;
+        }
+        
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        /* Search and filter */
+        #searchInput, #brandFilter, #statusFilter {
+            background-color: #3d3d3d;
+            color: #e5e7eb;
+            border: 1px solid #555;
+        }
+        
+        /* Store header */
+        .store-header {
+            background-color: #2d2d2d;
+            border: 1px solid #444;
+        }
+        
+        /* Stats icons */
+        .stats-icon {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+    </style>
+</head>
+<body class="bg-gray-900">
+    <!-- Splash Screen with Animated Logo -->
+    <div id="splashScreen">
+        <div id="logoAnimation">CASES STORE</div>
+    </div>
+
+    <!-- Main System (initially hidden) -->
+    <div id="mainSystem" class="hidden">
+        <div class="container mx-auto px-4 py-8">
+            <!-- Store Header -->
+            <div class="store-header rounded-lg shadow-md p-6 mb-8">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <h1 id="storeName" class="text-3xl font-bold text-white">CASES STORE</h1>
+                        <p class="text-gray-400">Gerencie seu estoque de forma eficiente</p>
+                    </div>
+                    <img id="logoPreview" src="" alt="Logo da Loja" class="hidden">
+                    <button id="editStoreBtn" class="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg flex items-center">
+                        <i class="fas fa-edit mr-2"></i> Editar Loja
+                    </button>
+                </div>
+            </div>
+                        
+            <!-- Stats Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <div class="stats-card total-stock p-6 rounded-lg shadow">
+                    <div class="flex items-center">
+                        <div class="stats-icon p-3 rounded-full bg-blue-900 text-blue-400 mr-4">
+                            <i class="fas fa-boxes text-xl"></i>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-400">Estoque Atual</p>
+                            <h3 class="text-2xl font-bold text-white" id="totalStock">0</h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="stats-card total-sales p-6 rounded-lg shadow">
+                    <div class="flex items-center">
+                        <div class="stats-icon p-3 rounded-full bg-green-900 text-green-400 mr-4">
+                            <i class="fas fa-chart-line text-xl"></i>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-400">Total de Vendas</p>
+                            <h3 class="text-2xl font-bold text-white" id="totalSales">0</h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="stats-card stock-value p-6 rounded-lg shadow">
+                    <div class="flex items-center">
+                        <div class="stats-icon p-3 rounded-full bg-yellow-900 text-yellow-400 mr-4">
+                            <i class="fas fa-dollar-sign text-xl"></i>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-400">Valor do Estoque</p>
+                            <h3 class="text-2xl font-bold text-white" id="stockValue">R$ 0,00</h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="stats-card total-invested p-6 rounded-lg shadow">
+                    <div class="flex items-center">
+                        <div class="stats-icon p-3 rounded-full bg-red-900 text-red-400 mr-4">
+                            <i class="fas fa-money-bill-wave text-xl"></i>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-400">Total Investido</p>
+                            <h3 class="text-2xl font-bold text-white" id="totalInvested">R$ 0,00</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+                        
+            <!-- Search and Filter -->
+            <div class="mb-8 bg-gray-800 p-4 rounded-lg shadow">
+                <div class="flex flex-col md:flex-row gap-4">
+                    <input type="text" id="searchInput" placeholder="Buscar por modelo..." class="flex-grow px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-700 text-white">
+                    <select id="brandFilter" class="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-700 text-white">
+                        <option value="">Todas as marcas</option>
+                        <option value="Apple">Apple</option>
+                        <option value="Samsung">Samsung</option>
+                        <option value="Xiaomi">Xiaomi</option>
+                        <option value="Motorola">Motorola</option>
+                        <option value="LG">LG</option>
+                        <option value="Asus">Asus</option>
+                    </select>
+                    <select id="statusFilter" class="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-700 text-white">
+                        <option value="">Todos os status</option>
+                        <option value="available">Disponível</option>
+                        <option value="sold">Vendido</option>
+                    </select>
+                    <button id="newPhoneBtn" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center whitespace-nowrap">
+                        <i class="fas fa-plus mr-2"></i> Novo Aparelho
+                    </button>
+                </div>
+            </div>
+                        
+            <!-- Phone Grid -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" id="phoneGrid">
+                <!-- Sample phones will be added here by JavaScript -->
+            </div>
+                        
+            <!-- Add/Edit Phone Modal -->
+            <div id="phoneModal" class="modal">
+                <div class="modal-content">
+                    <span class="close-btn">&times;</span>
+                    <h2 class="text-2xl font-bold mb-4 text-white" id="modalTitle">Adicionar Novo Aparelho</h2>
+                    <form id="phoneForm" class="space-y-4">
+                        <input type="hidden" id="phoneId">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label for="brand" class="block text-sm font-medium text-gray-300">Marca *</label>
+                                <select id="brand" required class="mt-1 block w-full px-3 py-2 border border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-gray-700 text-white">
+                                    <option value="">Selecione a marca</option>
+                                    <option value="Apple">Apple</option>
+                                    <option value="Samsung">Samsung</option>
+                                    <option value="Xiaomi">Xiaomi</option>
+                                    <option value="Motorola">Motorola</option>
+                                    <option value="LG">LG</option>
+                                    <option value="Asus">Asus</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="model, .model" class="block text-sm font-medium text-gray-300">Modelo *</label>
+                                <input type="text" id="model" required class="mt-1 block w-full px-3 py-2 border border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-gray-700 text-white">
+                            </div>
+                            <div>
+                                <label for="color" class="block text-sm font-medium text-gray-300">Cor *</label>
+                                <select id="color" required class="mt-1 block w-full px-3 py-2 border border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-gray-700 text-white">
+                                    <option value="">Selecione a cor</option>
+                                    <option value="Preto">Preto</option>
+                                    <option value="Branco">Branco</option>
+                                    <option value="Azul">Azul</option>
+                                    <option value="Verde">Verde</option>
+                                    <option value="Vermelho">Vermelho</option>
+                                    <option value="Rosa">Rosa</option>
+                                    <option value="Dourado">Dourado</option>
+                                    <option value="Prata">Prata</option>
+                                    <option value="Grafite">Grafite</option>
+                                    <option value="Outra">Outra</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="storage, .storage" class="block text-sm font-medium text-gray-300">Armazenamento *</label>
+                                <select id="storage" required class="mt-1 block w-full px-3 py-2 border border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-gray-700 text-white">
+                                    <option value="">Selecione o armazenamento</option>
+                                    <option value="32GB">32GB</option>
+                                    <option value="64GB">64GB</option>
+                                    <option value="128GB">128GB</option>
+                                    <option value="256GB">256GB</option>
+                                    <option value="512GB">512GB</option>
+                                    <option value="1TB">1TB</option>
+                                </select>
+                            </div>
+                        </div>
+                                             
+                        <div>
+                            <label for="imei" class="block text-sm font-medium text-gray-300">IMEI (opcional)</label>
+                            <input type="text" id="imei" class="mt-1 block w-full px-3 py-2 border border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-gray-700 text-white">
+                        </div>
+                                             
+                        <div class="border-t border-gray-600 pt-4">
+                            <div class="flex justify-between items-center mb-3">
+                                <h3 class="text-lg font-medium text-white">Checklist</h3>
+                                <button type="button" id="addChecklistItemBtn" class="text-sm text-blue-400 hover:text-blue-300">
+                                    <i class="fas fa-plus mr-1"></i> Adicionar Item
+                                </button>
+                            </div>
+                            <div id="checklistItems">
+                                <div class="checklist-item">
+                                    <input type="checkbox" id="batteryOk" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-600 rounded bg-gray-700">
+                                    <label for="batteryOk" class="text-sm text-gray-300">Bateria OK</label>
+                                    <input type="number" id="batteryHealth" min="0" max="100" placeholder="%" class="px-2 py-1 border border-gray-600 rounded-md bg-gray-700 text-white">
+                                </div>
+                                <div class="checklist-item">
+                                    <input type="checkbox" id="cameraOk" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-600 rounded bg-gray-700">
+                                    <label for="cameraOk" class="text-sm text-gray-300">Câmeras OK</label>
+                                </div>
+                                <div class="checklist-item">
+                                    <input type="checkbox" id="biometryOk" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-600 rounded bg-gray-700">
+                                    <label for="biometryOk" class="text-sm text-gray-300">Biometria OK</label>
+                                </div>
+                                <div class="checklist-item">
+                                    <input type="checkbox" id="deletedOk" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-600 rounded bg-gray-700">
+                                    <label for="deletedOk" class="text-sm text-gray-300">Apagado OK</label>
+                                </div>
+                            </div>
+                        </div>
+                                             
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label for="purchasePrice" class="block text-sm font-medium text-gray-300">Valor de Compra (R$) *</label>
+                                <input type="number" step="0.01" id="purchasePrice" required class="mt-1 block w-full px-3 py-2 border border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-gray-700 text-white">
+                            </div>
+                            <div>
+                                <label for="salePrice" class="block text-sm font-medium text-gray-300">Valor de Venda (R$) *</label>
+                                <input type="number" step="0.01" id="salePrice" required class="mt-1 block w-full px-3 py-2 border border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-gray-700 text-white">
+                            </div>
+                        </div>
+                                             
+                        <div>
+                            <label for="observation" class="block text-sm font-medium text-gray-300">Observações</label>
+                            <textarea id="observation" rows="3" class="mt-1 block w-full px-3 py-2 border border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-gray-700 text-white"></textarea>
+                        </div>
+                                             
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300">Fotos do Aparelho</label>
+                            <div class="mt-1 flex flex-wrap" id="photoThumbnails">
+                                <!-- Photo thumbnails will be added here -->
+                            </div>
+                            <div class="mt-2">
+                                <input type="file" id="phonePhotos" accept="image/*" multiple class="hidden">
+                                <button type="button" id="addPhotosBtn" class="px-3 py-1 border border-gray-600 rounded-md shadow-sm text-sm font-medium text-white bg-gray-700 hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                                    <i class="fas fa-plus mr-1"></i> Adicionar Fotos
+                                </button>
+                            </div>
+                        </div>
+                                             
+                        <div class="flex justify-end space-x-3">
+                            <button type="button" id="cancelPhoneBtn" class="px-4 py-2 border border-gray-600 rounded-md shadow-sm text-sm font-medium text-white bg-gray-700 hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                                Cancelar
+                            </button>
+                            <button type="submit" class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                                Salvar
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+                        
+            <!-- Installment Modal -->
+            <div id="installmentModal" class="modal">
+                <div class="modal-content">
+                    <span class="close-btn">&times;</span>
+                    <h2 class="text-2xl font-bold mb-4 text-white">Gerar Taxa de Parcela</h2>
+                    <div class="space-y-4">
+                        <div>
+                            <label for="clientName" class="block text-sm font-medium text-gray-300">Nome do Cliente *</label>
+                            <input type="text" id="clientName" required class="mt-1 block w-full px-3 py-2 border border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-gray-700 text-white">
+                        </div>
+                        <div>
+                            <label for="clientEmail" class="block text-sm font-medium text-gray-300">E-mail do Cliente (opcional)</label>
+                            <input type="email" id="clientEmail" class="mt-1 block w-full px-3 py-2 border border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-gray-700 text-white">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300">Valor Total: <span id="installmentTotalValue" class="font-bold text-white">R$ 0,00</span></label>
+                        </div>
+                                             
+                        <div class="border-t border-gray-600 pt-4">
+                            <div class="flex justify-between items-center mb-3">
+                                <h3 class="text-lg font-medium text-white">Opções de Parcelamento</h3>
+                                <button id="editRatesBtn" class="text-sm text-blue-400 hover:text-blue-300">
+                                    <i class="fas fa-edit mr-1"></i> Editar Taxas
+                                </button>
+                            </div>
+                            <div id="installmentOptions" class="space-y-2">
+                                <!-- Installment options will be added here -->
+                            </div>
+                        </div>
+                                             
+                        <div class="flex justify-end space-x-3">
+                            <button type="button" id="cancelInstallmentBtn" class="px-4 py-2 border border-gray-600 rounded-md shadow-sm text-sm font-medium text-white bg-gray-700 hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                                Cancelar
+                            </button>
+                            <button type="button" id="generatePdfBtn" class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                                <i class="fas fa-file-pdf mr-1"></i> Gerar PDF
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+                        
+            <!-- Edit Rates Modal -->
+            <div id="editRatesModal" class="modal">
+                <div class="modal-content">
+                    <span class="close-btn">&times;</span>
+                    <h2 class="text-2xl font-bold mb-4 text-white">Editar Taxas de Parcelamento</h2>
+                    <div class="space-y-4">
+                        <div class="bg-gray-700 p-4 rounded-lg">
+                            <p class="text-sm text-gray-300 mb-3">Aqui você pode personalizar las taxas de juros para cada quantidade de parcelas.</p>
+                            <div id="ratesEditContainer" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                                <!-- Rates edit inputs will be added here -->
+                            </div>
+                        </div>
+                        <div class="flex justify-end space-x-3">
+                            <button type="button" id="cancelEditRatesBtn" class="px-4 py-2 border border-gray-600 rounded-md shadow-sm text-sm font-medium text-white bg-gray-700 hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                                Cancelar
+                            </button>
+                            <button type="button" id="saveRatesBtn" class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                                Salvar Taxas
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Sample data
+        let phones = JSON.parse(localStorage.getItem('phones')) || [
+            {
+                id: 1,
+                brand: "Apple",
+                model: "iPhone 13",
+                color: "Azul",
+                storage: "128GB",
+                imei: "",
+                checklist: [
+                    { name: "Bateria OK", checked: true, value: 95 },
+                    { name: "Câmeras OK", checked: true },
+                    { name: "Biometria OK", checked: true },
+                    { name: "Apagado OK", checked: true },
+                    { name: "Tela OK", checked: true }
+                ],
+                purchasePrice: 3500.00,
+                salePrice: 4999.99,
+                observation: "Celular em perfeito estado, com nota fiscal e todos os acessórios originais.",
+                photos: [
+                    "https://www.apple.com/v/iphone-13/d/images/overview/hero/hero_1_static__d195o2fy63uu_large.jpg",
+                    "https://www.apple.com/v/iphone-13/d/images/overview/camera/camera__bwv4h3j4h5bm_large.jpg",
+                    "https://www.apple.com/v/iphone-13/d/images/overview/design/design__f2q65edr5kiq_large.jpg"
+                ],
+                status: "available",
+                addedDate: "2023-05-15"
+            },
+            {
+                id: 2,
+                brand: "Samsung",
+                model: "Galaxy S21 Ultra",
+                color: "Preto",
+                storage: "256GB",
+                imei: "123456789012345",
+                checklist: [
+                    { name: "Bateria OK", checked: true, value: 88 },
+                    { name: "Câmeras OK", checked: true },
+                    { name: "Biometria OK", checked: true },
+                    { name: "Apagado OK", checked: true },
+                    { name: "Carregador OK", checked: false }
+                ],
+                purchasePrice: 2800.00,
+                salePrice: 3899.99,
+                observation: "Pequeno risco na traseira, mas não afeta o funcionamento.",
+                photos: [
+                    "https://images.samsung.com/br/smartphones/galaxy-s21-ultra-5g/images/galaxy-s21-ultra-5g-share-image.jpg",
+                    "https://images.samsung.com/br/smartphones/galaxy-s21-ultra-5g/images/galaxy-s21-ultra-5g-highlights-camera-back.jpg",
+                    "https://images.samsung.com/br/ssmartphones/galaxy-s21-ultra-5g/images/galaxy-s21-ultra-5g-highlights-performance.jpg"
+                ],
+                status: "available",
+                addedDate: "2023-06-10"
+            },
+            {
+                id: 3,
+                brand: "Xiaomi",
+                model: "Redmi Note 11",
+                color: "Grafite",
+                storage: "128GB",
+                imei: "",
+                checklist: [
+                    { name: "Bateria OK", checked: true, value: 92 },
+                    { name: "Câmeras OK", checked: true },
+                    { name: "Biometria OK", checked: true },
+                    { name: "Apagado OK", checked: true }
+                ],
+                purchasePrice: 1200.00,
+                salePrice: 1599.99,
+                observation: "Celular novo, lacrado, com garantia de 1 ano.",
+                photos: [
+                    "https://i01.appmifile.com/webfile/globalimg/products/pc/redmi-note-11/specs-header.png",
+                    "https://i01.appmifile.com/webfile/globalimg/products/pc/redmi-note-11/specs-header-2.png",
+                    "https://i01.appmifile.com/webfile/globalimg/products/pc/redmi-note-11/specs-header-3.png"
+                ],
+                status: "sold",
+                addedDate: "2023-04-22",
+                soldDate: "2023-05-18"
+            }
+        ];
+
+        // Store info
+        let storeInfo = JSON.parse(localStorage.getItem('storeInfo')) || {
+            name: "CASES STORE",
+            logo: ""
+        };
+
+        // Custom checklist items (persistent across phones)
+        let customChecklistItems = JSON.parse(localStorage.getItem('customChecklistItems')) || [
+            { name: "Tela OK", checked: false },
+            { name: "Carregador OK", checked: false },
+            { name: "Fone OK", checked: false }
+        ];
+
+        // Installment rates (edit these values as needed)
+        let installmentRates = JSON.parse(localStorage.getItem('installmentRates')) || {
+            1: 4.45,
+            2: 6.11,
+            3: 7.13,
+            4: 8.25,
+            5: 9.37,
+            6: 10.49,
+            7: 11.61,
+            8: 12.73,
+            9: 14.04,
+            10: 15.16,
+            11: 16.24,
+            12: 17.35,
+            13: 19.12,
+            14: 20.26,
+            15: 21.39,
+            16: 22.53,
+            17: 23.67,
+            18: 24.84
+        };
+
+        // Carousel intervals (in milliseconds)
+        const carouselIntervals = {};
+
+        // Current phone for installment calculation
+        let currentPhoneForInstallment = null;
+        let selectedInstallmentOption = null;
+
+        // Inactivity timer for logo animation
+        let inactivityTimer;
+        const inactivityTimeout = 120000; // 2 minutes
+        let isLogoSpinning = false;
+
+        // DOM Elements
+        const splashScreen = document.getElementById('splashScreen');
+        const logoAnimation = document.getElementById('logoAnimation');
+        const mainSystem = document.getElementById('mainSystem');
+        const phoneGrid = document.getElementById('phoneGrid');
+        const newPhoneBtn = document.getElementById('newPhoneBtn');
+        const phoneModal = document.getElementById('phoneModal');
+        const phoneForm = document.getElementById('phoneForm');
+        const modalTitle = document.getElementById('modalTitle');
+        const cancelPhoneBtn = document.getElementById('cancelPhoneBtn');
+        const closeBtns = document.querySelectorAll('.close-btn');
+        const searchInput = document.getElementById('searchInput');
+        const brandFilter = document.getElementById('brandFilter');
+        const statusFilter = document.getElementById('statusFilter');
+        const addPhotosBtn = document.getElementById('addPhotosBtn');
+        const phonePhotos = document.getElementById('phonePhotos');
+        const photoThumbnails = document.getElementById('photoThumbnails');
+        const installmentModal = document.getElementById('installmentModal');
+        const cancelInstallmentBtn = document.getElementById('cancelInstallmentBtn');
+        const generatePdfBtn = document.getElementById('generatePdfBtn');
+        const storeName = document.getElementById('storeName');
+        const logoPreview = document.getElementById('logoPreview');
+        const editStoreBtn = document.getElementById('editStoreBtn');
+        const storeModal = document.getElementById('storeModal');
+        const storeForm = document.getElementById('storeForm');
+        const storeNameInput = document.getElementById('storeNameInput');
+        const storeLogo = document.getElementById('storeLogo');
+        const logoPreviewUpload = document.getElementById('logoPreviewUpload');
+        const cancelStoreBtn = document.getElementById('cancelStoreBtn');
+        const totalStock = document.getElementById('totalStock');
+        const totalSales = document.getElementById('totalSales');
+        const stockValue = document.getElementById('stockValue');
+        const totalInvested = document.getElementById('totalInvested');
+        const addChecklistItemBtn = document.getElementById('addChecklistItemBtn');
+        const checklistItems = document.getElementById('checklistItems');
+        const editRatesBtn = document.getElementById('editRatesBtn');
+        const editRatesModal = document.getElementById('editRatesModal');
+        const ratesEditContainer = document.getElementById('ratesEditContainer');
+        const saveRatesBtn = document.getElementById('saveRatesBtn');
+        const cancelEditRatesBtn = document.getElementById('cancelEditRatesBtn');
+        const clientNameInput = document.getElementById('clientName');
+        const clientEmailInput = document.getElementById('clientEmail');
+
+        // Save data to localStorage
+        function saveData() {
+            localStorage.setItem('phones', JSON.stringify(phones));
+            localStorage.setItem('storeInfo', JSON.stringify(storeInfo));
+            localStorage.setItem('customChecklistItems', JSON.stringify(customChecklistItems));
+            localStorage.setItem('installmentRates', JSON.stringify(installmentRates));
+        }
+
+        // Display phones
+        function displayPhones(filteredPhones = phones) {
+            phoneGrid.innerHTML = '';
+                        
+            if (filteredPhones.length === 0) {
+                phoneGrid.innerHTML = '<div class="col-span-full text-center py-10 text-gray-500">Nenhum aparelho encontrado</div>';
+                return;
+            }
+                        
+            filteredPhones.forEach(phone => {
+                const phoneCard = document.createElement('div');
+                phoneCard.className = 'bg-gray-800 rounded-lg overflow-hidden shadow-md phone-card';
+
+                phoneCard.innerHTML = `
+                    <div class="carousel relative" id="carousel-${phone.id}">
+                        <div class="carousel-inner">
+                            ${phone.photos.map((photo, index) => `
+                                <div class="carousel-item ${index === 0 ? 'active' : ''}">
+                                    <img src="${photo}" alt="${phone.brand} ${phone.model}">
+                                </div>
+                            `).join('')}
+                        </div>
+                        ${phone.photos.length > 1 ? `
+                            <button class="carousel-control prev" onclick="moveCarousel(${phone.id}, -1)">
+                                <i class="fas fa-chevron-left"></i>
+                            </button>
+                            <button class="carousel-control next" onclick="moveCarousel(${phone.id}, 1)">
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
+                        ` : ''}
+                    </div>
+                    <div class="p-4">
+                        <div class="flex justify-between items-start mb-2">
+                            <div>
+                                <h3 class="font-bold text-lg text-white">${phone.brand} ${phone.model}</h3>
+                                <p class="text-sm text-gray-400">${phone.storage} • ${phone.color}</p>
+                            </div>
+                            <span class="text-lg font-bold text-blue-400">R$ ${phone.salePrice.toFixed(2).replace('.', ',')}</span>
+                        </div>
+                        <div class="mb-2">
+                            <span class="status-badge ${phone.status === 'available' ? 'status-available' : 'status-sold'}">
+                                ${phone.status === 'available' ? 'Disponível' : 'Vendido'}
+                            </span>
+                        </div>
+                        <p class="text-sm text-gray-400 mb-4 line-clamp-2">${phone.observation || 'Sem observações'}</p>
+                        <div class="flex justify-between">
+                            <button class="edit-btn px-3 py-1 border border-gray-600 rounded-md text-sm font-medium text-white bg-gray-700" data-id="${phone.id}">
+                                <i class="fas fa-edit mr-1"></i> Editar
+                            </button>
+                            <div class="flex space-x-2">
+                                <button class="installment-btn px-3 py-1 border border-gray-600 rounded-md text-sm font-medium text-white bg-gray-700" data-id="${phone.id}" ${phone.status === 'sold' ? 'disabled' : ''}>
+                                    <i class="fas fa-percentage mr-1"></i> Parcelar
+                                </button>
+                                <button class="delete-btn px-3 py-1 border border-gray-600 rounded-md text-sm font-medium text-white bg-gray-700" data-id="${phone.id}">
+                                    <i class="fas fa-trash mr-1"></i> Excluir
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                phoneGrid.appendChild(phoneCard);
+
+                // Start auto carousel for this phone
+                if (phone.photos.length > 1) {
+                    startAutoCarousel(phone.id, phone.photos.length);
+                }
+            });
+
+            // Add event listeners to edit and delete buttons
+            document.querySelectorAll('.edit-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => editPhone(parseInt(e.target.closest('button').dataset.id)));
+            });
+
+            document.querySelectorAll('.delete-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => deletePhone(parseInt(e.target.closest('button').dataset.id)));
+            });
+
+            document.querySelectorAll('.installment-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => showInstallmentModal(parseInt(e.target.closest('button').dataset.id)));
+            });
+
+            // Update stats
+            updateStats();
+        }
+
+        // Start auto carousel for a phone
+        function startAutoCarousel(phoneId, photoCount) {
+            // Clear any existing interval for this phone
+            if (carouselIntervals[phoneId]) {
+                clearInterval(carouselIntervals[phoneId]);
+            }
+
+            // Set new interval (3 seconds)
+            carouselIntervals[phoneId] = setInterval(() => {
+                const carousel = document.querySelector(`#carousel-${phoneId} .carousel-inner`);
+                if (carousel) {
+                    const items = carousel.querySelectorAll('.carousel-item');
+                    const activeIndex = Array.from(items).findIndex(item => item.classList.contains('active'));
+                                    
+                    let newIndex = activeIndex + 1;
+                    if (newIndex >= items.length) newIndex = 0;
+                                    
+                    items[activeIndex].classList.remove('active');
+                    items[newIndex].classList.add('active');
+                                    
+                    // Update carousel position
+                    carousel.style.transform = `translateX(-${newIndex * 100}%)`;
+                }
+            }, 3000);
+        }
+
+        // Move carousel manually
+        window.moveCarousel = function(phoneId, direction) {
+            const carousel = document.querySelector(`#carousel-${phoneId} .carousel-inner`);
+            if (carousel) {
+                const items = carousel.querySelectorAll('.carousel-item');
+                const activeIndex = Array.from(items).findIndex(item => item.classList.contains('active'));
+                                
+                let newIndex = activeIndex + direction;
+                if (newIndex < 0) newIndex = items.length - 1;
+                if (newIndex >= items.length) newIndex = 0;
+                                
+                items[activeIndex].classList.remove('active');
+                items[newIndex].classList.add('active');
+                                
+                // Update carousel position
+                carousel.style.transform = `translateX(-${newIndex * 100}%)`;
+                                
+                // Reset the auto carousel interval
+                if (carouselIntervals[phoneId]) {
+                    clearInterval(carouselIntervals[phoneId]);
+                    startAutoCarousel(phoneId, items.length);
+                }
+            }
+        }
+
+        // Show modal for adding new phone
+        function showAddModal() {
+            phoneForm.reset();
+            document.getElementById('phoneId').value = '';
+            modalTitle.textContent = 'Adicionar Novo Aparelho';
+            photoThumbnails.innerHTML = '';
+
+            // Render checklist items
+            renderChecklistItems();
+
+            phoneModal.style.display = 'block';
+        }
+
+        // Render checklist items
+        function renderChecklistItems(phone = null) {
+            checklistItems.innerHTML = '';
+
+            // Default checklist items
+            const defaultItems = [
+                { name: "Bateria OK", checked: false, value: 0 },
+                { name: "Câmeras OK", checked: false },
+                { name: "Biometria OK", checked: false },
+                { name: "Apagado OK", checked: false }
+            ];
+
+            // Combine with custom items
+            const allItems = [...defaultItems, ...customChecklistItems];
+
+            // If editing a phone, use its checklist
+            const itemsToRender = phone ? phone.checklist : allItems;
+
+            itemsToRender.forEach((item, index) => {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'checklist-item';
+
+                const checkboxId = `checklist-${index}-${item.name.replace(/\s+/g, '-').toLowerCase()}`;
+
+                itemDiv.innerHTML = `
+                    <input type="checkbox" id="${checkboxId}" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-600 rounded bg-gray-700" ${item.checked ? 'checked' : ''}>
+                    <label for="${checkboxId}" class="text-sm text-gray-300">${item.name}</label>
+                    ${item.name.includes('Bateria') ?
+                        `<input type="number" id="${checkboxId}-value" min="0" max="100" placeholder="%" class="px-2 py-1 border border-gray-600 rounded-md bg-gray-700 text-white" value="${item.value || ''}">` :
+                        ''}
+                    ${index >= defaultItems.length ?
+                        `<span class="remove-checklist-item" data-index="${index}"><i class="fas fa-times"></i></span>` :
+                        ''}
+                `;
+
+                checklistItems.appendChild(itemDiv);
+            });
+
+            // Add event listeners to remove buttons
+            document.querySelectorAll('.remove-checklist-item').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const index = parseInt(e.target.closest('span').dataset.index);
+                    removeCustomChecklistItem(index);
+                });
+            });
+        }
+
+        // Add custom checklist item
+        function addCustomChecklistItem() {
+            const itemName = prompt('Digite o nome o novo item do checklist:');
+            if (itemName) {
+                customChecklistItems.push({ name: itemName, checked: false });
+                saveData();
+                renderChecklistItems();
+            }
+        }
+
+        // Remove custom checklist item
+        function removeCustomChecklistItem(index) {
+            if (confirm('Tem certeza que deseja remover este item do checklist?')) {
+                customChecklistItems.splice(index - 4, 1); // Subtract 4 for default items
+                saveData();
+                renderChecklistItems();
+            }
+        }
+
+        // Edit phone
+        function editPhone(id) {
+            const phone = phones.find(p => p.id === id);
+            if (phone) {
+                document.getElementById('phoneId').value = phone.id;
+                document.getElementById('brand').value = phone.brand;
+                document.getElementById('model').value = phone.model;
+                document.getElementById('color').value = phone.color;
+                document.getElementById('storage').value = phone.storage;
+                document.getElementById('imei').value = phone.imei || '';
+                document.getElementById('purchasePrice').value = phone.purchasePrice;
+                document.getElementById('salePrice').value = phone.salePrice;
+                document.getElementById('observation').value = phone.observation || '';
+
+                // Display photos
+                photoThumbnails.innerHTML = '';
+                phone.photos.forEach((photo, index) => {
+                    const img = document.createElement('img');
+                    img.src = photo;
+                    img.className = 'photo-thumbnail';
+                    img.onclick = () => removePhoto(index, phone.id);
+                    photoThumbnails.appendChild(img);
+                });
+
+                // Render checklist items
+                renderChecklistItems(phone);
+
+                modalTitle.textContent = `Editar ${phone.brand} ${phone.model}`;
+                phoneModal.style.display = 'block';
+            }
+        }
+
+        // Remove photo from edit
+        function removePhoto(index, phoneId) {
+            if (confirm('Tem certeza que deseja remover esta foto?')) {
+                if (phoneId) {
+                    // Editing existing phone
+                    const phone = phones.find(p => p.id === phoneId);
+                    if (phone) {
+                        phone.photos.splice(index, 1);
+                        saveData();
+                        editPhone(phoneId); // Refresh the edit modal
+                    }
+                } else {
+                    // Adding new phone - remove from preview
+                    const thumbnails = Array.from(photoThumbnails.children);
+                    thumbnails[index].remove();
+                }
+            }
+        }
+
+        // Delete phone
+        function deletePhone(id) {
+            if (confirm('Tem certeza que deseja excluir este aparelho?')) {
+                phones = phones.filter(p => p.id !== id);
+                saveData();
+                displayPhones();
+            }
+        }
+
+        // Show installment modal
+        function showInstallmentModal(id) {
+            const phone = phones.find(p => p.id === id);
+            if (phone) {
+                currentPhoneForInstallment = phone;
+                selectedInstallmentOption = null;
+                document.getElementById('installmentTotalValue').textContent = `R$ ${phone.salePrice.toFixed(2).replace('.', ',')}`;
+                clientNameInput.value = '';
+                clientEmailInput.value = '';
+
+                // Generate installment options
+                generateInstallmentOptions(phone.salePrice);
+
+                installmentModal.style.display = 'block';
+            }
+        }
+
+        // Generate installment options
+        function generateInstallmentOptions(totalValue) {
+            const installmentOptions = document.getElementById('installmentOptions');
+            installmentOptions.innerHTML = '';
+
+            for (const [installments, rate] of Object.entries(installmentRates)) {
+                const total = totalValue * (1 + rate / 100);
+                const monthly = total / parseInt(installments);
+
+                const option = document.createElement('div');
+                option.className = 'installment-option';
+                option.dataset.installments = installments;
+                option.dataset.rate = rate;
+                option.dataset.monthly = monthly.toFixed(2);
+                option.dataset.total = total.toFixed(2);
+                                
+                option.innerHTML = `
+                    <div>
+                        <span class="font-medium">${installments}x</span>
+                        <span class="text-sm text-gray-400 ml-2">(${rate}% de juros)</span>
+                    </div>
+                    <div class="text-right">
+                        <div class="font-medium">R$ ${monthly.toFixed(2).replace('.', ',')}/mês</div>
+                        <div class="text-sm text-gray-400">Total: R$ ${total.toFixed(2).replace('.', ',')}</div>
+                    </div>
+                `;
+                                
+                // Add click event to select installment option
+                option.addEventListener('click', function() {
+                    // Remove selected class from all options
+                    document.querySelectorAll('.installment-option').forEach(opt => {
+                        opt.classList.remove('selected-installment');
+                    });
+                                    
+                    // Add selected class to clicked option
+                    this.classList.add('selected-installment');
+                    selectedInstallmentOption = {
+                        installments: parseInt(this.dataset.installments),
+                        rate: parseFloat(this.dataset.rate),
+                        monthly: parseFloat(this.dataset.monthly),
+                        total: parseFloat(this.dataset.total)
+                    };
+                });
+                                
+                installmentOptions.appendChild(option);
+            }
+        }
+
+        // Show edit rates modal
+        function showEditRatesModal() {
+            ratesEditContainer.innerHTML = '';
+
+            for (const [installments, rate] of Object.entries(installmentRates)) {
+                const rateDiv = document.createElement('div');
+                rateDiv.className = 'flex items-center';
+
+                rateDiv.innerHTML = `
+                    <span class="w-8 text-white">${installments}x</span>
+                    <input type="number" step="0.01", value="${rate}" class="rate-edit-input" data-installments="${installments}">
+                    <span class="ml-1 text-white">%</span>
+                `;
+
+                ratesEditContainer.appendChild(rateDiv);
+            }
+
+            editRatesModal.style.display = 'block';
+        }
+
+        // Save edited rates
+        function saveEditedRates() {
+            const inputs = document.querySelectorAll('.rate-edit-input');
+
+            inputs.forEach(input => {
+                const installments = input.dataset.installments;
+                const newRate = parseFloat(input.value);
+
+                if (!isNaN(newRate)) {
+                    installmentRates[installments] = newRate;
+                }
+            });
+
+            saveData();
+            editRatesModal.style.display = 'none';
+
+            // Regenerate installment options if we have a current phone
+            if (currentPhoneForInstallment) {
+                generateInstallmentOptions(currentPhoneForInstallment.salePrice);
+            }
+        }
+
+        // Save phone (add or edit)
+        function savePhone(e) {
+            e.preventDefault();
+
+            const id = document.getElementById('phoneId').value;
+            const brand = document.getElementById('brand').value;
+            const model = document.getElementById('model').value;
+            const color = document.getElementById('color').value;
+            const storage = document.getElementById('storage').value;
+            const imei = document.getElementById('imei').value;
+            const purchasePrice = parseFloat(document.getElementById('purchasePrice').value);
+            const salePrice = parseFloat(document.getElementById('salePrice').value);
+            const observation = document.getElementById('observation').value;
+
+            // Get checklist items
+            const checklist = [];
+            const checklistElements = document.querySelectorAll('#checklistItems .checklist-item');
+            checklistElements.forEach(item => {
+                const checkbox = item.querySelector('input[type="checkbox"]');
+                const label = item.querySelector('label');
+                const valueInput = item.querySelector('input[type="number"]');
+
+                if (checkbox && label) {
+                    checklist.push({
+                        name: label.textContent,
+                        checked: checkbox.checked,
+                        value: valueInput ? parseInt(valueInput.value) || 0 : undefined
+                    });
+                }
+            });
+
+            // Get photos from thumbnails (for new phones)
+            let photos = [];
+            if (photoThumbnails.children.length > 0) {
+                photos = Array.from(photoThumbnails.children).map(img => img.src);
+            }
+
+            if (id) {
+                // Edit existing phone
+                const index = phones.findIndex(p => p.id === parseInt(id));
+                if (index !== -1) {
+                    phones[index] = {
+                        ...phones[index],
+                        brand,
+                        model,
+                        color,
+                        storage,
+                        imei,
+                        checklist,
+                        purchasePrice,
+                        salePrice,
+                        observation,
+                        photos: photos.length > 0 ? photos : phones[index].photos
+                    };
+                }
+            } else {
+                // Add new phone
+                const newId = phones.length > 0 ? Math.max(...phones.map(p => p.id)) + 1 : 1;
+                phones.push({
+                    id: newId,
+                    brand,
+                    model,
+                    color,
+                    storage,
+                    imei,
+                    checklist,
+                    purchasePrice,
+                    salePrice,
+                    observation,
+                    photos,
+                    status: "available",
+                    addedDate: new Date().toISOString().split('T')[0]
+                });
+            }
+
+            saveData();
+            phoneModal.style.display = 'none';
+            displayPhones();
+        }
+
+        // Update stats
+        function updateStats() {
+            const availablePhones = phones.filter(p => p.status === 'available');
+            const soldPhones = phones.filter(p => p.status === 'sold');
+
+            totalStock.textContent = availablePhones.length;
+            totalSales.textContent = soldPhones.length;
+
+            const stockValueTotal = availablePhones.reduce((sum, phone) => sum + phone.salePrice, 0);
+            stockValue.textContent = `R$ ${stockValueTotal.toFixed(2).replace('.', ',')}`;
+
+            const investedTotal = phones.reduce((sum, phone) => sum + phone.purchasePrice, 0);
+            totalInvested.textContent = `R$ ${investedTotal.toFixed(2).replace('.', ',')}`;
+        }
+
+        // Filter phones
+        function filterPhones() {
+            const searchTerm = searchInput.value.toLowerCase();
+            const brand = brandFilter.value;
+            const status = statusFilter.value;
+
+            let filtered = phones;
+
+            if (searchTerm) {
+                filtered = filtered.filter(p => 
+                    p.brand.toLowerCase().includes(searchTerm) ||
+                    p.model.toLowerCase().includes(searchTerm)
+                );
+            }
+
+            if (brand) {
+                filtered = filtered.filter(p => p.brand === brand);
+            }
+
+            if (status) {
+                filtered = filtered.filter(p => p.status === status);
+            }
+
+            displayPhones(filtered);
+        }
+
+        // Handle photo upload
+        function handlePhotoUpload(e) {
+            const files = e.target.files;
+
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                if (!file.type.match('image.*')) continue;
+
+                const reader = new FileReader();
+                reader.onload = (function(file) {
+                    return function(e) {
+                        const img = document.createElement('img');
+                        img.src = e.target.result;
+                        img.className = 'photo-thumbnail';
+                        img.onclick = () => img.remove();
+                        photoThumbnails.appendChild(img);
+                    };
+                })(file);
+                reader.readAsDataURL(file);
+            }
+        }
+
+        // Generate PDF - SIMPLIFIED VERSION
+        function generatePdf() {
+            if (!selectedInstallmentOption) {
+                alert('Por favor, selecione uma opção de parcelamento antes de gerar o PDF.');
+                return;
+            }
+
+            const clientName = document.getElementById('clientName').value;
+            if (!clientName) {
+                alert('Por favor, informe o nome do cliente.');
+                return;
+            }
+
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+
+            // Configurações básicas
+            const margin = 15;
+            let y = margin;
+            const pageWidth = doc.internal.pageSize.getWidth();
+
+            // Cabeçalho
+            doc.setFontSize(20);
+            doc.setTextColor(0, 0, 0);
+            doc.setFont('helvetica', 'bold');
+            doc.text('CASES STORE', pageWidth / 2, y, { align: 'center' });
+            y += 10;
+                        
+            doc.setFontSize(16);
+            doc.text('Proposta Comercial', pageWidth / 2, y, { align: 'center' });
+            y += 15;
+
+            // Linha divisória
+            doc.setDrawColor(0);
+            doc.setLineWidth(0.5);
+            doc.line(margin, y, pageWidth - margin, y);
+            y += 10;
+
+            // Informações básicas
+            doc.setFontSize(12);
+            doc.setFont('helvetica', 'normal');
+            doc.text(`Cliente: ${clientName}`, margin, y);
+            y += 7;
+            doc.text(`Data: ${new Date().toLocaleDateString()}`, margin, y);
+            y += 15;
+
+            // Detalhes do aparelho
+            doc.setFontSize(14);
+            doc.setFont('helvetica', 'bold');
+            doc.text('Detalhes do Aparelho', margin, y);
+            y += 10;
+
+            doc.setFontSize(12);
+            doc.setFont('helvetica', 'normal');
+            doc.text(`Marca: ${currentPhoneForInstallment.brand}`, margin, y);
+            y += 7;
+            doc.text(`Modelo: ${currentPhoneForInstallment.model}`, margin, y);
+            y += 7;
+            doc.text(`Cor: ${currentPhoneForInstallment.color}`, margin, y);
+            y += 7;
+            doc.text(`Armazenamento: ${currentPhoneForInstallment.storage}`, margin, y);
+            y += 7;
+            doc.text(`Valor: R$ ${currentPhoneForInstallment.salePrice.toFixed(2).replace('.', ',')}`, margin, y);
+            y += 15;
+
+            // Adicionar fotos do aparelho ao PDF
+            if (currentPhoneForInstallment.photos.length > 0) {
+                doc.setFontSize(14);
+                doc.setFont('helvetica', 'bold');
+                doc.text('Fotos do Aparelho', margin, y);
+                y += 10;
+                                
+                // Criar uma grade de miniaturas para as fotos
+                const photosPerRow = 2;
+                const photoWidth = (pageWidth - margin * 2) / photosPerRow - 5;
+                const photoHeight = photoWidth * 0.75;
+                                
+                let currentRow = 0;
+                let currentCol = 0;
+                                
+                for (let i = 0; i < currentPhoneForInstallment.photos.length; i++) {
+                    if (i > 0 && i % photosPerRow === 0) {
+                        currentRow++;
+                        currentCol = 0;
+                    }
+                                    
+                    const xPos = margin + currentCol * (photoWidth + 5);
+                    const yPos = y + currentRow * (photoHeight + 5);
+                                    
+                    // Adicionar borda à miniatura
+                    doc.rect(xPos, yPos, photoWidth, photoHeight);
+                                    
+                    // Adicionar texto de placeholder (no mundo real, você usaria html2canvas para capturar as imagens)
+                    doc.setFontSize(8);
+                    doc.text(`Foto ${i+1}`, xPos + photoWidth/2, yPos + photoHeight/2, { align: 'center' });
+                                    
+                    currentCol++;
+                }
+                                
+                y += (currentRow + 1) * (photoHeight + 5) + 10;
+            }
+
+            // Detalhes do parcelamento
+            doc.setFontSize(14);
+            doc.setFont('helvetica', 'bold');
+            doc.text('Detalhes do Parcelamento', margin, y);
+            y += 10;
+
+            doc.setFontSize(12);
+            doc.setFont('helvetica', 'normal');
+            doc.text(`Parcelas: ${selectedInstallmentOption.installments}x`, margin, y);
+            y += 7;
+            doc.text(`Taxa de juros: ${selectedInstallmentOption.rate}%`, margin, y);
+            y += 7;
+            doc.text(`Valor da parcela: R$ ${selectedInstallmentOption.monthly.toFixed(2).replace('.', ',')}/mês`, margin, y);
+            y += 7;
+            doc.text(`Valor total: R$ ${selectedInstallmentOption.total.toFixed(2).replace('.', ',')}`, margin, y);
+            y += 15;
+
+            // Assinatura
+            doc.text('Assinatura do Cliente:', margin, y);
+            y += 5;
+            doc.line(margin, y, margin + 100, y);
+            y += 20;
+            doc.text(`Nome: ${clientName}`, margin, y);
+
+            // Rodapé
+            y = doc.internal.pageSize.getHeight() - 20;
+            doc.setFontSize(10);
+            doc.setTextColor(100, 100, 100);
+            doc.text('CASES STORE - Todos os direitos reservados', pageWidth / 2, y, { align: 'center' });
+
+            // Nome do arquivo
+            const fileName = `Proposta_${currentPhoneForInstallment.brand}_${currentPhoneForInstallment.model}_${clientName.replace(/\s+/g, '_')}.pdf`;
+
+            // Forçar download para a área de trabalho
+            doc.save(fileName);
+
+            installmentModal.style.display = 'none';
+        }
+
+        // Edit store info
+        function editStoreInfo() {
+            storeNameInput.value = storeInfo.name;
+            logoPreviewUpload.src = storeInfo.logo;
+            if (storeInfo.logo) {
+                logoPreviewUpload.classList.remove('hidden');
+            } else {
+                logoPreviewUpload.classList.add('hidden');
+            }
+            storeModal.style.display = 'block';
+        }
+
+        // Save store info
+        function saveStoreInfo(e) {
+            e.preventDefault();
+
+            storeInfo.name = storeNameInput.value;
+            storeName.textContent = storeInfo.name;
+
+            // Handle logo upload
+            const file = storeLogo.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    storeInfo.logo = e.target.result;
+                    logoPreview.src = storeInfo.logo;
+                    logoPreview.classList.remove('hidden');
+                };
+                reader.readAsDataURL(file);
+            }
+
+            saveData();
+            storeModal.style.display = 'none';
+        }
+
+        // Preview logo upload
+        function previewLogoUpload(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    logoPreviewUpload.src = e.target.result;
+                    logoPreviewUpload.classList.remove('hidden');
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        // Reset inactivity timer
+        function resetInactivityTimer() {
+            clearTimeout(inactivityTimer);
+
+            // If logo is spinning, stop it
+            if (isLogoSpinning) {
+                logoAnimation.style.animation = 'animateLogo 20s linear infinite, floatLogo 3s ease-in-out infinite alternate';
+                isLogoSpinning = false;
+            }
+
+            // Set new timer
+            inactivityTimer = setTimeout(() => {
+                // Start spinning animation after inactivity
+                logoAnimation.style.animation = 'animateLogo 20s linear infinite, spinLogo 5s linear infinite';
+                isLogoSpinning = true;
+            }, inactivityTimeout);
+        }
+
+        // Initialize splash screen and logo animation
+        function initSplashScreen() {
+            // Hide splash screen after 3 seconds
+            setTimeout(() => {
+                splashScreen.style.opacity = '0';
+                                
+                // Show main system after fade out
+                setTimeout(() => {
+                    splashScreen.style.display = 'none';
+                    mainSystem.classList.remove('hidden');
+                                    
+                    // Display phones immediately after showing main system
+                    displayPhones();
+                }, 1000);
+            }, 3000);
+        }
+
+        // Event Listeners
+        document.addEventListener('DOMContentLoaded', () => {
+            initSplashScreen();
+
+            // Set up inactivity timer
+            resetInactivityTimer();
+
+            // Reset timer on any user interaction
+            document.addEventListener('mousemove', resetInactivityTimer);
+            document.addEventListener('keydown', resetInactivityTimer);
+            document.addEventListener('click', resetInactivityTimer);
+            document.addEventListener('scroll', resetInactivityTimer);
+        });
+
+        newPhoneBtn.addEventListener('click', showAddModal);
+        phoneForm.addEventListener('submit', savePhone);
+        cancelPhoneBtn.addEventListener('click', () => phoneModal.style.display = 'none');
+        addPhotosBtn.addEventListener('click', () => phonePhotos.click());
+        phonePhotos.addEventListener('change', handlePhotoUpload);
+        searchInput.addEventListener('input', filterPhones);
+        brandFilter.addEventListener('change', filterPhones);
+        statusFilter.addEventListener('change', filterPhones);
+        cancelInstallmentBtn.addEventListener('click', () => installmentModal.style.display = 'none');
+        generatePdfBtn.addEventListener('click', generatePdf);
+        editStoreBtn.addEventListener('click', editStoreInfo);
+        storeForm.addEventListener('submit', saveStoreInfo);
+        storeLogo.addEventListener('change', previewLogoUpload);
+        cancelStoreBtn.addEventListener('click', () => storeModal.style.display = 'none');
+        addChecklistItemBtn.addEventListener('click', addCustomChecklistItem);
+        editRatesBtn.addEventListener('click', showEditRatesModal);
+        saveRatesBtn.addEventListener('click', saveEditedRates);
+        cancelEditRatesBtn.addEventListener('click', () => editRatesModal.style.display = 'none');
+
+        // Close modals when clicking outside or on close button
+        closeBtns.forEach(btn => {
+            btn.addEventListener('click', function() {
+                this.closest('.modal').style.display = 'none';
+            });
+        });
+
+        window.addEventListener('click', (e) => {
+            if (e.target.classList.contains('modal')) {
+                e.target.style.display = 'none';
+            }
+        });
+
+        // Initialize
+        storeName.textContent = storeInfo.name;
+        if (storeInfo.logo) {
+            logoPreview.src = storeInfo.logo;
+            logoPreview.classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>
